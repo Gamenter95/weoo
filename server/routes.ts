@@ -212,6 +212,199 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Forgot Password - verify S-PIN and login
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const validatedData = req.body as any;
+
+      const user = await storage.getUserByUsernameOrPhone(validatedData.usernameOrPhone);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const spinMatch = await bcrypt.compare(validatedData.spin, user.spin);
+      if (!spinMatch) {
+        return res.status(401).json({ error: "Invalid S-PIN" });
+      }
+
+      req.session.userId = user.id;
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          wwid: user.wwid,
+          balance: user.balance,
+        },
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Password recovery failed" });
+    }
+  });
+
+  // Forgot S-PIN - verify password and login
+  app.post("/api/auth/forgot-spin", async (req, res) => {
+    try {
+      const validatedData = req.body as any;
+
+      const user = await storage.getUserByUsernameOrPhone(validatedData.usernameOrPhone);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const passwordMatch = await bcrypt.compare(validatedData.password, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+
+      req.session.userId = user.id;
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          wwid: user.wwid,
+          balance: user.balance,
+        },
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "S-PIN recovery failed" });
+    }
+  });
+
+  // Add Fund - submit request with UTR
+  app.post("/api/transactions/add-fund", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const validatedData = req.body as any;
+      const amount = validatedData.amount;
+      const afterTaxAmount = amount * 0.97;
+
+      const request = await storage.createFundRequest({
+        userId: req.session.userId,
+        amount: amount.toFixed(2),
+        afterTaxAmount: afterTaxAmount.toFixed(2),
+        utr: validatedData.utr,
+        status: "pending",
+      });
+
+      res.json({
+        success: true,
+        message: "Fund request submitted successfully",
+        request,
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to submit fund request" });
+    }
+  });
+
+  // Pay to User
+  app.post("/api/transactions/pay-to-user", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const validatedData = req.body as any;
+
+      const sender = await storage.getUser(req.session.userId);
+      if (!sender) {
+        return res.status(404).json({ error: "Sender not found" });
+      }
+
+      const recipient = await storage.getUserByWWID(validatedData.recipientWWID);
+      if (!recipient) {
+        return res.status(404).json({ error: "Recipient not found" });
+      }
+
+      if (sender.id === recipient.id) {
+        return res.status(400).json({ error: "Cannot pay to yourself" });
+      }
+
+      const spinMatch = await bcrypt.compare(validatedData.spin, sender.spin);
+      if (!spinMatch) {
+        return res.status(401).json({ error: "Invalid S-PIN" });
+      }
+
+      const senderBalance = parseFloat(sender.balance);
+      const amount = validatedData.amount;
+
+      if (senderBalance < amount) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      const newSenderBalance = (senderBalance - amount).toFixed(2);
+      const newRecipientBalance = (parseFloat(recipient.balance) + amount).toFixed(2);
+
+      await storage.updateUserBalance(sender.id, newSenderBalance);
+      await storage.updateUserBalance(recipient.id, newRecipientBalance);
+
+      const transaction = await storage.createTransaction({
+        senderId: sender.id,
+        recipientId: recipient.id,
+        amount: amount.toFixed(2),
+      });
+
+      res.json({
+        success: true,
+        message: "Payment successful",
+        transaction,
+        newBalance: newSenderBalance,
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Payment failed" });
+    }
+  });
+
+  // Withdraw
+  app.post("/api/transactions/withdraw", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const validatedData = req.body as any;
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const amount = validatedData.amount;
+      const afterTaxAmount = amount * 0.97;
+      const userBalance = parseFloat(user.balance);
+
+      if (userBalance < amount) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      const newBalance = (userBalance - amount).toFixed(2);
+      await storage.updateUserBalance(user.id, newBalance);
+
+      const request = await storage.createWithdrawRequest({
+        userId: user.id,
+        amount: amount.toFixed(2),
+        afterTaxAmount: afterTaxAmount.toFixed(2),
+        upiId: validatedData.upiId,
+        status: "pending",
+      });
+
+      res.json({
+        success: true,
+        message: "Withdrawal request submitted successfully",
+        request,
+        newBalance,
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Withdrawal failed" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

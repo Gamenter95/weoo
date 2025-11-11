@@ -9,6 +9,11 @@ import PINSetup from "@/pages/PINSetup";
 import Login from "@/pages/Login";
 import PINVerify from "@/pages/PINVerify";
 import Dashboard from "@/pages/Dashboard";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ForgotSPIN from "@/pages/ForgotSPIN";
+import AddFund from "@/pages/AddFund";
+import PayToUser from "@/pages/PayToUser";
+import Withdraw from "@/pages/Withdraw";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,7 +25,12 @@ function Router() {
       <Route path="/pin-setup" component={PINSetup} />
       <Route path="/login" component={Login} />
       <Route path="/pin-verify" component={PINVerify} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/forgot-spin" component={ForgotSPIN} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/add-fund" component={AddFund} />
+      <Route path="/pay-to-user" component={PayToUser} />
+      <Route path="/withdraw" component={Withdraw} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -41,6 +41,60 @@ export const verifyPinSchema = z.object({
   spin: z.string().regex(/^\d{4}$/, "S-PIN must be exactly 4 digits"),
 });
 
+export const forgotPasswordSchema = z.object({
+  usernameOrPhone: z.string().min(3),
+  spin: z.string().regex(/^\d{4}$/, "S-PIN must be exactly 4 digits"),
+});
+
+export const forgotSpinSchema = z.object({
+  usernameOrPhone: z.string().min(3),
+  password: z.string().min(6),
+});
+
+export const addFundSchema = z.object({
+  amount: z.number().min(10, "Minimum amount is ₹10"),
+  utr: z.string().min(12).max(12),
+});
+
+export const payToUserSchema = z.object({
+  recipientWWID: z.string().min(5),
+  amount: z.number().min(1, "Amount must be at least ₹1"),
+  spin: z.string().regex(/^\d{4}$/, "S-PIN must be exactly 4 digits"),
+});
+
+export const withdrawSchema = z.object({
+  amount: z.number().min(20, "Minimum withdrawal is ₹20"),
+  upiId: z.string().regex(/^[\w.-]+@[\w.-]+$/, "Invalid UPI ID format"),
+});
+
+export const fundRequests = pgTable("fund_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  afterTaxAmount: numeric("after_tax_amount", { precision: 10, scale: 2 }).notNull(),
+  utr: text("utr").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const withdrawRequests = pgTable("withdraw_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  afterTaxAmount: numeric("after_tax_amount", { precision: 10, scale: 2 }).notNull(),
+  upiId: text("upi_id").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  recipientId: varchar("recipient_id").notNull().references(() => users.id),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -48,3 +102,8 @@ export type WWIDInput = z.infer<typeof wwidSchema>;
 export type SPINInput = z.infer<typeof spinSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type VerifyPinInput = z.infer<typeof verifyPinSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ForgotSpinInput = z.infer<typeof forgotSpinSchema>;
+export type AddFundInput = z.infer<typeof addFundSchema>;
+export type PayToUserInput = z.infer<typeof payToUserSchema>;
+export type WithdrawInput = z.infer<typeof withdrawSchema>;

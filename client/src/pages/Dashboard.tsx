@@ -138,7 +138,7 @@ export default function Dashboard() {
       <div className="border-t bg-card p-6">
         <div className="flex justify-around items-center max-w-md mx-auto">
           <button
-            onClick={() => toast({ title: "Coming Soon", description: "Add Fund feature coming soon!" })}
+            onClick={() => setLocation("/add-fund")}
             data-testid="button-add-fund"
             className="flex flex-col items-center gap-2 hover-elevate active-elevate-2 p-3 rounded-lg"
           >
@@ -149,7 +149,7 @@ export default function Dashboard() {
           </button>
 
           <button
-            onClick={() => toast({ title: "Coming Soon", description: "Pay to User feature coming soon!" })}
+            onClick={() => setLocation("/pay-to-user")}
             data-testid="button-pay"
             className="flex flex-col items-center gap-2 hover-elevate active-elevate-2 p-3 rounded-lg"
           >
@@ -160,7 +160,7 @@ export default function Dashboard() {
           </button>
 
           <button
-            onClick={() => toast({ title: "Coming Soon", description: "Withdraw feature coming soon!" })}
+            onClick={() => setLocation("/withdraw")}
             data-testid="button-withdraw"
             className="flex flex-col items-center gap-2 hover-elevate active-elevate-2 p-3 rounded-lg"
           >

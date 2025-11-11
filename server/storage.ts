@@ -1,6 +1,6 @@
 import { type User, type InsertUser } from "@shared/schema";
 import { db } from "./db";
-import { users } from "@shared/schema";
+import { users, schema } from "@shared/schema";
 import { eq, or } from "drizzle-orm";
 
 export interface IStorage {
@@ -12,6 +12,10 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUserWWID(id: string, wwid: string): Promise<void>;
   updateUserSPIN(id: string, spin: string): Promise<void>;
+  updateUserBalance(userId: string, newBalance: string): Promise<User | undefined>;
+  createFundRequest(data: any): Promise<any>;
+  createWithdrawRequest(data: any): Promise<any>;
+  createTransaction(data: any): Promise<any>;
 }
 
 export class DbStorage implements IStorage {
@@ -53,6 +57,29 @@ export class DbStorage implements IStorage {
 
   async updateUserSPIN(id: string, spin: string): Promise<void> {
     await db.update(users).set({ spin }).where(eq(users.id, id));
+  }
+
+  async updateUserBalance(userId: string, newBalance: string): Promise<User | undefined> {
+    const [user] = await db.update(users)
+      .set({ balance: newBalance })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async createFundRequest(data: any): Promise<any> {
+    const [request] = await db.insert(schema.fundRequests).values(data).returning();
+    return request;
+  }
+
+  async createWithdrawRequest(data: any): Promise<any> {
+    const [request] = await db.insert(schema.withdrawRequests).values(data).returning();
+    return request;
+  }
+
+  async createTransaction(data: any): Promise<any> {
+    const [transaction] = await db.insert(schema.transactions).values(data).returning();
+    return transaction;
   }
 }
 
