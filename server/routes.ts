@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import {
   registerSchema,
   wwidSchema,
@@ -560,7 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const notifications = await storage.getNotifications(req.session.userId);
+      const notifications = await storage.getUserNotifications(req.session.userId);
       res.json(notifications);
     } catch (error: any) {
       res.status(500).json({ error: "Failed to fetch notifications" });
@@ -575,7 +576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const { field, value, verifyWith } = req.body;
 
-    const user = await storage.getUserById(req.session.userId);
+    const user = await storage.getUser(req.session.userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -630,6 +631,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
       success: true,
       message: `${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`,
     });
+  });
+
+  // API Settings Routes
+  app.get("/api/api-settings", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      let settings = await storage.getApiSettings(req.session.userId);
+      
+      if (!settings) {
+        settings = await storage.createApiSettings({
+          userId: req.session.userId,
+          apiEnabled: false,
+          apiToken: null,
+          domain: "https://weoo.replit.app",
+        });
+      }
+
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch API settings" });
+    }
+  });
+
+  app.post("/api/api-settings/toggle", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const validatedData = req.body as { enabled: boolean };
+      const { enabled } = validatedData;
+      
+      let settings = await storage.getApiSettings(req.session.userId);
+      
+      if (!settings) {
+        settings = await storage.createApiSettings({
+          userId: req.session.userId,
+          apiEnabled: enabled,
+          apiToken: null,
+          domain: "https://weoo.replit.app",
+        });
+      } else {
+        settings = await storage.updateApiSettings(req.session.userId, { apiEnabled: enabled });
+      }
+
+      res.json(settings);
+    } catch (error: any) {
+      res.status(400).json({ error: "Failed to update API settings" });
+    }
+  });
+
+  app.post("/api/api-settings/generate-token", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const generateSecureToken = async (): Promise<string> => {
+        let token: string;
+        let isUnique = false;
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        while (!isUnique && attempts < maxAttempts) {
+          token = crypto.randomBytes(24).toString('base64url').substring(0, 32);
+          
+          const existingSettings = await storage.getApiSettingsByToken(token);
+          if (!existingSettings) {
+            isUnique = true;
+            return token;
+          }
+          attempts++;
+        }
+
+        throw new Error("Failed to generate unique token after multiple attempts");
+      };
+
+      const newToken = await generateSecureToken();
+      
+      let settings = await storage.getApiSettings(req.session.userId);
+      
+      if (!settings) {
+        settings = await storage.createApiSettings({
+          userId: req.session.userId,
+          apiEnabled: false,
+          apiToken: newToken,
+          domain: "https://weoo.replit.app",
+        });
+      } else {
+        settings = await storage.updateApiSettings(req.session.userId, { apiToken: newToken });
+      }
+
+      res.json(settings);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to generate token" });
+    }
+  });
+
+  app.post("/api/api-settings/revoke-token", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const settings = await storage.updateApiSettings(req.session.userId, { 
+        apiToken: null,
+        apiEnabled: false 
+      });
+
+      res.json(settings);
+    } catch (error: any) {
+      res.status(400).json({ error: "Failed to revoke token" });
+    }
+  });
+
+  app.post("/api/api-settings/update-domain", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const validatedData = req.body as { domain: string };
+      const { domain } = validatedData;
+      
+      const settings = await storage.updateApiSettings(req.session.userId, { domain });
+
+      res.json(settings);
+    } catch (error: any) {
+      res.status(400).json({ error: "Failed to update domain" });
+    }
+  });
+
+  // Public API Wallet Endpoint
+  app.post("/api/wallet", async (req, res) => {
+    try {
+      const { type, token, wwid, amount } = req.query;
+
+      if (type !== 'wallet') {
+        return res.status(400).json({ error: "Invalid API type" });
+      }
+
+      if (!token || !wwid || !amount) {
+        return res.status(400).json({ error: "Missing required parameters: token, wwid, amount" });
+      }
+
+      const apiSettings = await storage.getApiSettingsByToken(token as string);
+      
+      if (!apiSettings) {
+        return res.status(401).json({ error: "Invalid or revoked API token" });
+      }
+
+      if (!apiSettings.apiEnabled) {
+        return res.status(403).json({ error: "API payments are disabled" });
+      }
+
+      const recipient = await storage.getUserByWWID(wwid as string);
+      if (!recipient) {
+        return res.status(404).json({ error: "Recipient WWID not found" });
+      }
+
+      const paymentAmount = parseFloat(amount as string);
+      if (isNaN(paymentAmount) || paymentAmount <= 0) {
+        return res.status(400).json({ error: "Invalid amount" });
+      }
+
+      const payer = await storage.getUser(apiSettings.userId);
+      if (!payer) {
+        return res.status(404).json({ error: "API owner not found" });
+      }
+
+      const payerBalance = parseFloat(payer.balance);
+      if (payerBalance < paymentAmount) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      const newPayerBalance = (payerBalance - paymentAmount).toFixed(2);
+      const newRecipientBalance = (parseFloat(recipient.balance) + paymentAmount).toFixed(2);
+
+      await storage.updateUserBalance(payer.id, newPayerBalance);
+      await storage.updateUserBalance(recipient.id, newRecipientBalance);
+
+      const transaction = await storage.createTransaction({
+        senderId: payer.id,
+        recipientId: recipient.id,
+        amount: paymentAmount.toFixed(2),
+      });
+
+      await storage.createNotification({
+        userId: payer.id,
+        type: "api_payment_sent",
+        title: "API Payment Sent",
+        message: `₹${paymentAmount.toFixed(2)} sent to ${recipient.wwid} via API`,
+      });
+
+      await storage.createNotification({
+        userId: recipient.id,
+        type: "payment_received",
+        title: "Payment Received",
+        message: `You received ₹${paymentAmount.toFixed(2)} from ${payer.wwid} via API`,
+      });
+
+      res.json({
+        success: true,
+        message: "Payment successful",
+        transaction,
+        newBalance: newPayerBalance,
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "API payment failed" });
+    }
   });
 
 

@@ -44,21 +44,26 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-4 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 pointer-events-none"></div>
+      <Card className="w-full max-w-md shadow-2xl relative z-10">
+        <CardHeader className="space-y-6 text-center pb-8">
           <div className="flex justify-center">
-            <img src={logoImage} alt="WeooWallet" className="h-16 w-16" />
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 shadow-lg">
+              <img src={logoImage} alt="WeooWallet" className="h-20 w-20" />
+            </div>
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription className="mt-2">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Welcome Back
+            </CardTitle>
+            <CardDescription className="mt-3 text-base">
               Login to access your WeooWallet
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="pt-0">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="usernameOrPhone" data-testid="label-username-phone">
                 Username or Phone

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -67,6 +67,14 @@ export const withdrawSchema = z.object({
   upiId: z.string().regex(/^[\w.-]+@[\w.-]+$/, "Invalid UPI ID format"),
 });
 
+export const toggleApiSchema = z.object({
+  enabled: z.boolean(),
+});
+
+export const updateDomainSchema = z.object({
+  domain: z.string().url("Invalid domain URL"),
+});
+
 export const fundRequests = pgTable("fund_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -104,6 +112,21 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const apiSettings = pgTable("api_settings", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull().unique().references(() => users.id),
+  apiEnabled: boolean("api_enabled").notNull().default(false),
+  apiToken: text("api_token"),
+  domain: text("domain").default("https://weoo.replit.app"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertApiSettingsSchema = createInsertSchema(apiSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -117,3 +140,5 @@ export type ForgotSpinInput = z.infer<typeof forgotSpinSchema>;
 export type AddFundInput = z.infer<typeof addFundSchema>;
 export type PayToUserInput = z.infer<typeof payToUserSchema>;
 export type WithdrawInput = z.infer<typeof withdrawSchema>;
+export type ApiSettings = typeof apiSettings.$inferSelect;
+export type InsertApiSettings = z.infer<typeof insertApiSettingsSchema>;

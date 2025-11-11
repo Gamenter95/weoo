@@ -1,7 +1,7 @@
-import { type User, type InsertUser, fundRequests, withdrawRequests, transactions, notifications } from "@shared/schema";
+import { type User, type InsertUser, type ApiSettings, type InsertApiSettings, fundRequests, withdrawRequests, transactions, notifications, apiSettings } from "@shared/schema";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { eq, or, desc } from "drizzle-orm";
+import { eq, or, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -26,6 +26,10 @@ export interface IStorage {
   createNotification(data: any): Promise<any>;
   getUserNotifications(userId: string): Promise<any[]>;
   updateUserField(userId: string, field: string, value: string): Promise<void>;
+  getApiSettings(userId: string): Promise<ApiSettings | undefined>;
+  createApiSettings(data: InsertApiSettings): Promise<ApiSettings>;
+  updateApiSettings(userId: string, data: Partial<InsertApiSettings>): Promise<ApiSettings | undefined>;
+  getApiSettingsByToken(token: string): Promise<ApiSettings | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -162,13 +166,31 @@ export class DbStorage implements IStorage {
       .orderBy(desc(notifications.createdAt));
   }
 
-  async getUserByWWID(wwid: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.wwid, wwid));
-    return user;
-  }
-
   async updateUserField(userId: string, field: string, value: string): Promise<void> {
     await db.update(users).set({ [field]: value }).where(eq(users.id, userId));
+  }
+
+  async getApiSettings(userId: string): Promise<ApiSettings | undefined> {
+    const [settings] = await db.select().from(apiSettings).where(eq(apiSettings.userId, userId));
+    return settings;
+  }
+
+  async createApiSettings(data: InsertApiSettings): Promise<ApiSettings> {
+    const [settings] = await db.insert(apiSettings).values(data).returning();
+    return settings;
+  }
+
+  async updateApiSettings(userId: string, data: Partial<InsertApiSettings>): Promise<ApiSettings | undefined> {
+    const [settings] = await db.update(apiSettings)
+      .set({ ...data, updatedAt: sql`now()` })
+      .where(eq(apiSettings.userId, userId))
+      .returning();
+    return settings;
+  }
+
+  async getApiSettingsByToken(token: string): Promise<ApiSettings | undefined> {
+    const [settings] = await db.select().from(apiSettings).where(eq(apiSettings.apiToken, token));
+    return settings;
   }
 }
 

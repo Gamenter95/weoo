@@ -18,6 +18,7 @@ import Secret from "@/pages/Secret";
 import Admin from "@/pages/Admin";
 import Notifications from "@/pages/Notifications";
 import Profile from "@/pages/Profile";
+import ApiSettings from "@/pages/ApiSettings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/profile" component={Profile} />
+      <Route path="/api" component={ApiSettings} />
       <Route component={NotFound} />
     </Switch>
   );

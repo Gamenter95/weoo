@@ -21,12 +21,6 @@ interface UserData {
   balance: string;
 }
 
-// Mock notifications data - replace with actual data fetching
-const notifications = [
-  { id: 1, message: "New transaction" },
-  { id: 2, message: "Welcome bonus" },
-];
-
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -35,6 +29,10 @@ export default function Dashboard() {
   const { data: user, isLoading } = useQuery<UserData>({
     queryKey: ["/api/auth/me"],
     retry: false,
+  });
+
+  const { data: notifications = [] } = useQuery<any[]>({
+    queryKey: ["/api/notifications"],
   });
 
   useEffect(() => {
@@ -68,7 +66,7 @@ export default function Dashboard() {
     { icon: Plus, label: "Add Fund", onClick: () => { setIsMenuOpen(false); setLocation("/add-fund"); } },
     { icon: Send, label: "Pay to User", onClick: () => { setIsMenuOpen(false); setLocation("/pay-to-user"); } },
     { icon: ArrowDownToLine, label: "Withdraw", onClick: () => { setIsMenuOpen(false); setLocation("/withdraw"); } },
-    { icon: Globe, label: "API Gateway", onClick: () => { setIsMenuOpen(false); toast({ title: "Coming Soon", description: "API Gateway feature coming soon!" }); } },
+    { icon: Globe, label: "API Gateway", onClick: () => { setIsMenuOpen(false); setLocation("/api"); } },
     { icon: User, label: "Profile", onClick: () => { setIsMenuOpen(false); setLocation("/profile"); } },
     { icon: MessageCircle, label: "Contact Us", onClick: () => { setIsMenuOpen(false); window.open("https://t.me/WeooWallet", "_blank"); } },
   ];
