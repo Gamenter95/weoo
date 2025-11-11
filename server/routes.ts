@@ -767,7 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public API Wallet Endpoint
-  app.post("/api/wallet", async (req, res) => {
+  app.get("/api/wallet", async (req, res) => {
     try {
       const { type, token, wwid, amount } = req.query;
 
