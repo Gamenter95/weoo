@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ArrowLeft, User, Phone, KeyRound, CreditCard, Edit } from "lucide-react";
+import { ArrowLeft, User, Phone, KeyRound, CreditCard, Edit, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface UserData {
@@ -17,6 +18,7 @@ interface UserData {
   phone: string;
   wwid: string;
   balance: string;
+  avatar?: string;
 }
 
 export default function Profile() {
@@ -24,7 +26,7 @@ export default function Profile() {
   const { toast } = useToast();
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
-    field: "username" | "phone" | "password" | "spin" | "wwid" | null;
+    field: "username" | "phone" | "password" | "spin" | "wwid" | "avatar" | null;
   }>({ open: false, field: null });
   const [formData, setFormData] = useState({
     value: "",
@@ -58,7 +60,7 @@ export default function Profile() {
     },
   });
 
-  const handleEdit = (field: "username" | "phone" | "password" | "spin" | "wwid") => {
+  const handleEdit = (field: "username" | "phone" | "password" | "spin" | "wwid" | "avatar") => {
     setEditDialog({ open: true, field });
     setFormData({ value: "", verifyWith: "" });
   };
@@ -92,6 +94,7 @@ export default function Profile() {
       case "password": return "Change Password";
       case "spin": return "Change S-PIN";
       case "wwid": return "Change WWID (₹10 Fee)";
+      case "avatar": return "Change Avatar";
       default: return "Edit Profile";
     }
   };
@@ -115,9 +118,20 @@ export default function Profile() {
       <main className="p-4 max-w-2xl mx-auto space-y-4">
         <Card className="border-primary/20">
           <CardHeader>
-            <div className="flex items-center justify-center mb-4">
-              <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-12 w-12 text-primary" />
+            <div className="flex flex-col items-center mb-4">
+              <div className="relative group">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={user.avatar || "/WeooWallet_logo_icon_7f926dfd.png"} alt={user.username} />
+                  <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleEdit("avatar")}
+                  className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary/90 hover:bg-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Edit className="h-4 w-4 text-white" />
+                </Button>
               </div>
             </div>
             <CardTitle className="text-center text-2xl">{user.username}</CardTitle>
@@ -225,29 +239,32 @@ export default function Profile() {
                 {editDialog.field === "password" && "New Password"}
                 {editDialog.field === "spin" && "New S-PIN (4 digits)"}
                 {editDialog.field === "wwid" && "New WWID"}
+                {editDialog.field === "avatar" && "Avatar Image URL"}
               </Label>
               <Input
                 type={editDialog.field === "password" ? "password" : editDialog.field === "spin" ? "password" : "text"}
                 inputMode={editDialog.field === "spin" ? "numeric" : editDialog.field === "phone" ? "tel" : "text"}
                 maxLength={editDialog.field === "spin" ? 4 : undefined}
-                placeholder={`Enter new ${editDialog.field}`}
+                placeholder={editDialog.field === "avatar" ? "Enter image URL or leave empty for default" : `Enter new ${editDialog.field}`}
                 value={formData.value}
                 onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                required
+                required={editDialog.field !== "avatar"}
               />
             </div>
-            <div className="space-y-2">
-              <Label>{getVerifyLabel()}</Label>
-              <Input
-                type="password"
-                inputMode={editDialog.field === "spin" ? "text" : "numeric"}
-                maxLength={editDialog.field === "spin" ? undefined : 4}
-                placeholder={editDialog.field === "spin" ? "Enter password" : "Enter S-PIN"}
-                value={formData.verifyWith}
-                onChange={(e) => setFormData({ ...formData, verifyWith: e.target.value })}
-                required
-              />
-            </div>
+            {editDialog.field !== "avatar" && (
+              <div className="space-y-2">
+                <Label>{getVerifyLabel()}</Label>
+                <Input
+                  type="password"
+                  inputMode={editDialog.field === "spin" ? "text" : "numeric"}
+                  maxLength={editDialog.field === "spin" ? undefined : 4}
+                  placeholder={editDialog.field === "spin" ? "Enter password" : "Enter S-PIN"}
+                  value={formData.verifyWith}
+                  onChange={(e) => setFormData({ ...formData, verifyWith: e.target.value })}
+                  required
+                />
+              </div>
+            )}
             {editDialog.field === "wwid" && (
               <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <p className="text-sm text-destructive font-medium">

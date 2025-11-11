@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ArrowLeft, Bell, CheckCircle, XCircle, DollarSign } from "lucide-react";
 
 export default function Notifications() {
@@ -12,6 +13,22 @@ export default function Notifications() {
   const { data: notifications = [] } = useQuery<any[]>({
     queryKey: ["/api/notifications"],
   });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/notifications/mark-all-read");
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+    },
+  });
+
+  useEffect(() => {
+    // Mark all as read when page loads
+    markAllReadMutation.mutate();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">

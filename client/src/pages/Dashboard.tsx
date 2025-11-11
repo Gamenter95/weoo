@@ -19,13 +19,8 @@ interface UserData {
   phone: string;
   wwid: string;
   balance: string;
+  avatar?: string;
 }
-
-// Mock notifications data - replace with actual data fetching
-const notifications = [
-  { id: 1, message: "New transaction" },
-  { id: 2, message: "Welcome bonus" },
-];
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -36,6 +31,13 @@ export default function Dashboard() {
     queryKey: ["/api/auth/me"],
     retry: false,
   });
+
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ["/api/notifications/unread-count"],
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
+  const unreadCount = unreadData?.count || 0;
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -154,7 +156,7 @@ export default function Dashboard() {
             className="hover:bg-primary/10 hover:scale-105 active:scale-95 transition-all relative"
           >
             <Bell className="h-5 w-5" />
-            {notifications && notifications.length > 0 && (
+            {unreadCount > 0 && (
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
             )}
           </Button>
