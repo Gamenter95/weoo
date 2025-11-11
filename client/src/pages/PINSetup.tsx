@@ -3,9 +3,13 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function PINSetup() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [step, setStep] = useState<"create" | "confirm">("create");
   const [pin, setPin] = useState(["", "", "", ""]);
   const [confirmPin, setConfirmPin] = useState(["", "", "", ""]);
@@ -17,6 +21,29 @@ export default function PINSetup() {
 
   const currentPin = step === "create" ? pin : confirmPin;
   const setCurrentPin = step === "create" ? setPin : setConfirmPin;
+
+  const spinMutation = useMutation({
+    mutationFn: async (data: { spin: string }) => {
+      return await apiRequest("/api/auth/setup-spin", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account Created!",
+        description: "Your WeooWallet account has been created successfully.",
+      });
+      setLocation("/login");
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Setup Failed",
+        description: error.message || "Failed to create account",
+      });
+    },
+  });
 
   const handlePinChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -49,10 +76,13 @@ export default function PINSetup() {
       const confirmPinString = confirmPin.join("");
       
       if (pinString === confirmPinString) {
-        console.log("S-PIN created successfully:", pinString);
-        setLocation("/login");
+        spinMutation.mutate({ spin: pinString });
       } else {
-        alert("PINs don't match! Please try again.");
+        toast({
+          variant: "destructive",
+          title: "PINs Don't Match",
+          description: "Please try again.",
+        });
         setStep("create");
         setPin(["", "", "", ""]);
         setConfirmPin(["", "", "", ""]);
@@ -113,9 +143,9 @@ export default function PINSetup() {
               data-testid="button-submit-pin"
               className="w-full"
               size="lg"
-              disabled={currentPin.some(d => d === "")}
+              disabled={currentPin.some(d => d === "") || spinMutation.isPending}
             >
-              {step === "create" ? "Continue" : "Create Account"}
+              {spinMutation.isPending ? "Creating Account..." : step === "create" ? "Continue" : "Create Account"}
             </Button>
           </form>
         </CardContent>

@@ -15,18 +15,6 @@ import {
   type VerifyPinInput,
 } from "@shared/schema";
 
-declare module "express-session" {
-  interface SessionData {
-    userId?: string;
-    registrationData?: {
-      username: string;
-      phone: string;
-      password: string;
-    };
-    wwid?: string;
-  }
-}
-
 export async function registerRoutes(app: Express): Promise<Server> {
   // Registration - Step 1: Basic info
   app.post("/api/auth/register", async (req, res) => {
@@ -216,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Logout
   app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy((err) => {
+    req.session.destroy((err: any) => {
       if (err) {
         return res.status(500).json({ error: "Logout failed" });
       }

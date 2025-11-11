@@ -4,20 +4,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import logoImage from "@assets/generated_images/WeooWallet_logo_icon_7f926dfd.png";
 
 export default function Register() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     username: "",
     phone: "",
     password: "",
   });
 
+  const registerMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      return await apiRequest("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Registration data saved. Please create your WWID.",
+      });
+      setLocation("/wwid-setup");
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "Username or phone already exists",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Registration submitted:", formData);
-    setLocation("/wwid-setup");
+    registerMutation.mutate(formData);
   };
 
   return (
@@ -80,8 +106,9 @@ export default function Register() {
               data-testid="button-register"
               className="w-full"
               size="lg"
+              disabled={registerMutation.isPending}
             >
-              Continue
+              {registerMutation.isPending ? "Creating..." : "Continue"}
             </Button>
           </form>
           <div className="mt-6 text-center">

@@ -4,19 +4,45 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import logoImage from "@assets/generated_images/WeooWallet_logo_icon_7f926dfd.png";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     usernameOrPhone: "",
     password: "",
   });
 
+  const loginMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      return await apiRequest("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Login Successful",
+        description: "Please enter your S-PIN to continue.",
+      });
+      setLocation("/pin-verify");
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Invalid credentials",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login submitted:", formData);
-    setLocation("/pin-verify");
+    loginMutation.mutate(formData);
   };
 
   return (
@@ -71,7 +97,7 @@ export default function Login() {
                   type="button"
                   className="text-sm text-primary hover:underline"
                   data-testid="link-forgot-password"
-                  onClick={() => console.log("Forgot password clicked")}
+                  onClick={() => toast({ title: "Coming Soon", description: "Password reset feature coming soon!" })}
                 >
                   Forgot Password?
                 </button>
@@ -82,8 +108,9 @@ export default function Login() {
               data-testid="button-login"
               className="w-full"
               size="lg"
+              disabled={loginMutation.isPending}
             >
-              Login
+              {loginMutation.isPending ? "Logging in..." : "Login"}
             </Button>
           </form>
           <div className="mt-6 text-center">

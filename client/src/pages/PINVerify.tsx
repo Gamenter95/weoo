@@ -3,15 +3,44 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function PINVerify() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [pin, setPin] = useState(["", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  const verifyMutation = useMutation({
+    mutationFn: async (data: { spin: string }) => {
+      return await apiRequest("/api/auth/verify-pin", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Welcome!",
+        description: "S-PIN verified successfully.",
+      });
+      setLocation("/dashboard");
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Verification Failed",
+        description: error.message || "Invalid S-PIN",
+      });
+      setPin(["", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    },
+  });
 
   const handlePinChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -35,8 +64,7 @@ export default function PINVerify() {
     e.preventDefault();
     
     if (pin.every(d => d !== "")) {
-      console.log("S-PIN verified:", pin.join(""));
-      setLocation("/dashboard");
+      verifyMutation.mutate({ spin: pin.join("") });
     }
   };
 
@@ -80,9 +108,9 @@ export default function PINVerify() {
               data-testid="button-verify-pin"
               className="w-full"
               size="lg"
-              disabled={pin.some(d => d === "")}
+              disabled={pin.some(d => d === "") || verifyMutation.isPending}
             >
-              Verify & Continue
+              {verifyMutation.isPending ? "Verifying..." : "Verify & Continue"}
             </Button>
 
             <div className="text-center">
@@ -90,7 +118,7 @@ export default function PINVerify() {
                 type="button"
                 className="text-sm text-muted-foreground hover:text-foreground"
                 data-testid="link-forgot-pin"
-                onClick={() => console.log("Forgot S-PIN clicked")}
+                onClick={() => toast({ title: "Coming Soon", description: "S-PIN reset feature coming soon!" })}
               >
                 Forgot S-PIN?
               </button>

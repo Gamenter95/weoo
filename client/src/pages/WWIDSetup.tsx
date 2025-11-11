@@ -5,9 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function WWIDSetup() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [wwid, setWwid] = useState("");
   const [isValid, setIsValid] = useState<boolean | null>(null);
 
@@ -26,11 +30,33 @@ export default function WWIDSetup() {
     }
   };
 
+  const wwidMutation = useMutation({
+    mutationFn: async (data: { wwid: string }) => {
+      return await apiRequest("/api/auth/setup-wwid", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "WWID created successfully!",
+      });
+      setLocation("/pin-setup");
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "WWID Setup Failed",
+        description: error.message || "WWID already taken",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isValid) {
-      console.log("WWID created:", wwid + "@ww");
-      setLocation("/pin-setup");
+      wwidMutation.mutate({ wwid });
     }
   };
 
@@ -98,9 +124,9 @@ export default function WWIDSetup() {
               data-testid="button-create-wwid"
               className="w-full"
               size="lg"
-              disabled={!isValid}
+              disabled={!isValid || wwidMutation.isPending}
             >
-              Create WWID
+              {wwidMutation.isPending ? "Creating..." : "Create WWID"}
             </Button>
           </form>
         </CardContent>
