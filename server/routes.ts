@@ -560,45 +560,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const notifications = await storage.getUserNotifications(req.session.userId);
+      const notifications = await storage.getNotifications(req.session.userId);
       res.json(notifications);
     } catch (error: any) {
       res.status(500).json({ error: "Failed to fetch notifications" });
-    }
-  });
-
-  app.get("/api/notifications/unread-count", async (req, res) => {
-    try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const count = await storage.getUnreadNotificationCount(req.session.userId);
-      res.json({ count });
-    } catch (error: any) {
-      res.status(500).json({ error: "Failed to fetch unread count" });
-    }
-  });
-
-  app.post("/api/notifications/mark-read/:id", async (req, res) => {
-    try {
-      await storage.markNotificationAsRead(req.params.id);
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: "Failed to mark notification as read" });
-    }
-  });
-
-  app.post("/api/notifications/mark-all-read", async (req, res) => {
-    try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      await storage.markAllNotificationsAsRead(req.session.userId);
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(400).json({ error: "Failed to mark all as read" });
     }
   });
 

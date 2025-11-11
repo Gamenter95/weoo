@@ -11,7 +11,6 @@ export const users = pgTable("users", {
   wwid: text("wwid").notNull().unique(),
   spin: text("spin").notNull(),
   balance: numeric("balance", { precision: 10, scale: 2 }).notNull().default("0"),
-  avatar: text("avatar").default("/WeooWallet_logo_icon_7f926dfd.png"),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -102,7 +101,6 @@ export const notifications = pgTable("notifications", {
   type: text("type").notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  isRead: text("is_read").notNull().default("false"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
