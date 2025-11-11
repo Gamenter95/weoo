@@ -87,27 +87,31 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
-      <header className="h-16 border-b bg-card/80 backdrop-blur-lg flex items-center justify-between px-4 sticky top-0 z-50 shadow-sm">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-primary/5 via-background to-primary/10 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(120,119,198,0.1),transparent_50%)] pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-50"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-50"></div>
+      
+      <header className="h-16 border-b border-primary/10 bg-card/90 backdrop-blur-xl flex items-center justify-between px-4 sticky top-0 z-50 shadow-lg relative">
         <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <SheetTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               data-testid="button-menu"
-              className="hover:bg-primary/10 hover:scale-105 active:scale-95 transition-all"
+              className="hover:bg-primary/10 hover:scale-110 active:scale-95 transition-all duration-200"
             >
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 bg-card/95 backdrop-blur-lg">
+          <SheetContent side="left" className="w-80 bg-card/98 backdrop-blur-xl border-primary/10">
             <SheetHeader>
-              <SheetTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Menu</SheetTitle>
+              <SheetTitle className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent">Menu</SheetTitle>
             </SheetHeader>
-            <div className="mt-6 p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
-              <p className="text-sm text-muted-foreground">Logged in as</p>
-              <p className="font-bold text-lg">{user.username}</p>
-              <p className="text-sm font-mono text-primary">{user.wwid}</p>
+            <div className="mt-6 p-5 bg-gradient-to-br from-primary/15 via-primary/10 to-primary/5 rounded-2xl border border-primary/20 shadow-lg">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Logged in as</p>
+              <p className="font-bold text-xl mb-1">{user.username}</p>
+              <p className="text-sm font-mono text-primary bg-primary/10 inline-block px-3 py-1 rounded-full">{user.wwid}</p>
             </div>
             <nav className="mt-6 space-y-2">
               {menuItems.map((item) => (
@@ -115,36 +119,37 @@ export default function Dashboard() {
                   key={item.label}
                   onClick={item.onClick}
                   data-testid={`menu-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                  className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-primary/10 active:scale-95 transition-all text-left group"
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 active:scale-95 transition-all duration-200 text-left group"
                 >
-                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <div className="p-2.5 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-all duration-200 group-hover:scale-110">
                     <item.icon className="h-5 w-5 text-primary" />
                   </div>
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-semibold">{item.label}</span>
                 </button>
               ))}
-              <div className="pt-4 border-t">
+              <div className="pt-4 border-t border-primary/10">
                 <button
                   onClick={handleLogout}
                   data-testid="menu-logout"
-                  className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-destructive/10 active:scale-95 transition-all text-left text-destructive group"
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-destructive/10 active:scale-95 transition-all duration-200 text-left text-destructive group"
                 >
-                  <div className="p-2 rounded-lg bg-destructive/10 group-hover:bg-destructive/20 transition-colors">
+                  <div className="p-2.5 rounded-xl bg-destructive/10 group-hover:bg-destructive/20 transition-all duration-200 group-hover:scale-110">
                     <LogOut className="h-5 w-5" />
                   </div>
-                  <span className="font-medium">Logout</span>
+                  <span className="font-semibold">Logout</span>
                 </button>
               </div>
             </nav>
           </SheetContent>
         </Sheet>
-        <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent" data-testid="text-app-name">WeooWallet</h1>
+        <h1 className="text-2xl font-black bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent tracking-tight" data-testid="text-app-name">WeooWallet</h1>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => window.open("https://t.me/WeooWallet", "_blank")}
-            className="hover:bg-primary/10 hover:scale-105 active:scale-95 transition-all"
+            className="hover:bg-primary/10 hover:scale-110 active:scale-95 transition-all duration-200"
+            title="Contact Support"
           >
             <Phone className="h-5 w-5" />
           </Button>
@@ -153,66 +158,67 @@ export default function Dashboard() {
             size="icon"
             data-testid="button-notifications"
             onClick={() => setLocation("/notifications")}
-            className="hover:bg-primary/10 hover:scale-105 active:scale-95 transition-all relative"
+            className="hover:bg-primary/10 hover:scale-110 active:scale-95 transition-all duration-200 relative"
+            title="Notifications"
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+              <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse ring-2 ring-red-500/30"></span>
             )}
           </Button>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none"></div>
-        <div className="text-center space-y-4 relative z-10">
-          <div className="inline-block p-6 rounded-3xl bg-card/50 backdrop-blur-sm border border-primary/10 shadow-2xl">
-            <p className="text-sm text-muted-foreground mb-2 font-medium">Available Balance</p>
-            <div className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent" data-testid="text-balance">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
+        <div className="text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="inline-block p-8 rounded-[2rem] bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-xl border border-primary/20 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-[1.02]">
+            <p className="text-sm text-muted-foreground mb-3 font-semibold uppercase tracking-widest">Available Balance</p>
+            <div className="text-6xl md:text-7xl font-black bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent mb-2 tracking-tight" data-testid="text-balance">
               ₹{parseFloat(user.balance).toFixed(2)}
             </div>
+            <div className="h-1 w-24 mx-auto bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"></div>
           </div>
-          <div className="flex gap-2 justify-center mt-4">
-            <div className="px-4 py-2 rounded-full bg-primary/10 text-sm font-mono text-primary">
+          <div className="flex gap-3 justify-center mt-6">
+            <div className="px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 text-sm font-mono font-bold text-primary border border-primary/20 shadow-lg shadow-primary/10">
               {user.wwid}
             </div>
           </div>
         </div>
       </main>
 
-      <div className="border-t bg-card/80 backdrop-blur-lg p-6 shadow-lg">
-        <div className="flex justify-around items-center max-w-md mx-auto gap-2">
+      <div className="border-t border-primary/10 bg-card/90 backdrop-blur-xl p-6 shadow-2xl relative">
+        <div className="flex justify-around items-center max-w-md mx-auto gap-3">
           <button
             onClick={() => setLocation("/add-fund")}
             data-testid="button-add-fund"
-            className="flex flex-col items-center gap-2 hover:scale-105 active:scale-95 transition-all p-3 rounded-2xl hover:bg-primary/5"
+            className="flex flex-col items-center gap-2.5 hover:scale-110 active:scale-95 transition-all duration-200 p-3 rounded-2xl hover:bg-gradient-to-br hover:from-green-500/5 hover:to-green-600/5"
           >
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white flex items-center justify-center shadow-lg shadow-green-500/30">
-              <Plus className="h-6 w-6" />
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white flex items-center justify-center shadow-xl shadow-green-500/40 hover:shadow-2xl hover:shadow-green-500/50 transition-all duration-200">
+              <Plus className="h-7 w-7" />
             </div>
-            <span className="text-xs font-semibold">Add Fund</span>
+            <span className="text-xs font-bold">Add Fund</span>
           </button>
 
           <button
             onClick={() => setLocation("/pay-to-user")}
             data-testid="button-pay"
-            className="flex flex-col items-center gap-2 hover:scale-105 active:scale-95 transition-all p-3 rounded-2xl hover:bg-primary/5"
+            className="flex flex-col items-center gap-2.5 hover:scale-110 active:scale-95 transition-all duration-200 p-3 rounded-2xl hover:bg-gradient-to-br hover:from-blue-500/5 hover:to-blue-600/5"
           >
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <Send className="h-6 w-6" />
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-xl shadow-blue-500/40 hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-200">
+              <Send className="h-7 w-7" />
             </div>
-            <span className="text-xs font-semibold">Pay to User</span>
+            <span className="text-xs font-bold">Pay to User</span>
           </button>
 
           <button
             onClick={() => setLocation("/withdraw")}
             data-testid="button-withdraw"
-            className="flex flex-col items-center gap-2 hover:scale-105 active:scale-95 transition-all p-3 rounded-2xl hover:bg-primary/5"
+            className="flex flex-col items-center gap-2.5 hover:scale-110 active:scale-95 transition-all duration-200 p-3 rounded-2xl hover:bg-gradient-to-br hover:from-orange-500/5 hover:to-orange-600/5"
           >
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
-              <ArrowDownToLine className="h-6 w-6" />
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center shadow-xl shadow-orange-500/40 hover:shadow-2xl hover:shadow-orange-500/50 transition-all duration-200">
+              <ArrowDownToLine className="h-7 w-7" />
             </div>
-            <span className="text-xs font-semibold">Withdraw</span>
+            <span className="text-xs font-bold">Withdraw</span>
           </button>
         </div>
       </div>
