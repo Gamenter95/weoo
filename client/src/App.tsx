@@ -14,6 +14,9 @@ import ForgotSPIN from "@/pages/ForgotSPIN";
 import AddFund from "@/pages/AddFund";
 import PayToUser from "@/pages/PayToUser";
 import Withdraw from "@/pages/Withdraw";
+import Secret from "@/pages/Secret";
+import Admin from "@/pages/Admin";
+import Notifications from "@/pages/Notifications";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,6 +34,9 @@ function Router() {
       <Route path="/add-fund" component={AddFund} />
       <Route path="/pay-to-user" component={PayToUser} />
       <Route path="/withdraw" component={Withdraw} />
+      <Route path="/secret" component={Secret} />
+      <Route path="/admin" component={Admin} />
+      <Route path="/notifications" component={Notifications} />
       <Route component={NotFound} />
     </Switch>
   );

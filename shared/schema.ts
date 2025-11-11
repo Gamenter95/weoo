@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, numeric, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -88,12 +88,22 @@ export const withdrawRequests = pgTable("withdraw_requests", {
 });
 
 export const transactions = pgTable("transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
-  recipientId: varchar("recipient_id").notNull().references(() => users.id),
-  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderId: text("sender_id").notNull().references(() => users.id),
+  recipientId: text("recipient_id").notNull().references(() => users.id),
+  amount: text("amount").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const notifications = pgTable("notifications", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

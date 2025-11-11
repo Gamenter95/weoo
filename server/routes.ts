@@ -405,6 +405,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Routes
+  app.get("/api/admin/users", async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      res.json(allUsers);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.get("/api/admin/fund-requests", async (req, res) => {
+    try {
+      const requests = await storage.getAllFundRequests();
+      res.json(requests);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch fund requests" });
+    }
+  });
+
+  app.get("/api/admin/withdraw-requests", async (req, res) => {
+    try {
+      const requests = await storage.getAllWithdrawRequests();
+      res.json(requests);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch withdraw requests" });
+    }
+  });
+
+  app.post("/api/admin/update-balance", async (req, res) => {
+    try {
+      const { userId, change } = req.body;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const currentBalance = parseFloat(user.balance);
+      const newBalance = (currentBalance + change).toFixed(2);
+
+      await storage.updateUserBalance(userId, newBalance);
+
+      res.json({ success: true, newBalance });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update balance" });
+    }
+  });
+
+  app.post("/api/admin/approve-fund/:id", async (req, res) => {
+    try {
+      const request = await storage.getFundRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+
+      const user = await storage.getUser(request.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const newBalance = (parseFloat(user.balance) + parseFloat(request.afterTaxAmount)).toFixed(2);
+      await storage.updateUserBalance(user.id, newBalance);
+      await storage.updateFundRequestStatus(req.params.id, "approved");
+      
+      await storage.createNotification({
+        userId: user.id,
+        type: "fund_approved",
+        title: "Fund Request Approved",
+        message: `Your fund request of ₹${request.amount} has been approved. ₹${request.afterTaxAmount} added to your account.`,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to approve request" });
+    }
+  });
+
+  app.post("/api/admin/decline-fund/:id", async (req, res) => {
+    try {
+      const request = await storage.getFundRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+
+      await storage.updateFundRequestStatus(req.params.id, "declined");
+      
+      await storage.createNotification({
+        userId: request.userId,
+        type: "fund_declined",
+        title: "Fund Request Declined",
+        message: `Your fund request of ₹${request.amount} has been declined.`,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to decline request" });
+    }
+  });
+
+  app.post("/api/admin/approve-withdraw/:id", async (req, res) => {
+    try {
+      const request = await storage.getWithdrawRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+
+      await storage.updateWithdrawRequestStatus(req.params.id, "approved");
+      
+      await storage.createNotification({
+        userId: request.userId,
+        type: "withdraw_approved",
+        title: "Withdraw Request Approved",
+        message: `Your withdraw request of ₹${request.amount} has been approved. ₹${request.afterTaxAmount} will be sent to ${request.upiId}.`,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to approve request" });
+    }
+  });
+
+  app.post("/api/admin/decline-withdraw/:id", async (req, res) => {
+    try {
+      const request = await storage.getWithdrawRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+
+      const user = await storage.getUser(request.userId);
+      if (user) {
+        const newBalance = (parseFloat(user.balance) + parseFloat(request.amount)).toFixed(2);
+        await storage.updateUserBalance(user.id, newBalance);
+      }
+
+      await storage.updateWithdrawRequestStatus(req.params.id, "declined");
+      
+      await storage.createNotification({
+        userId: request.userId,
+        type: "withdraw_declined",
+        title: "Withdraw Request Declined",
+        message: `Your withdraw request of ₹${request.amount} has been declined. Amount refunded to your balance.`,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to decline request" });
+    }
+  });
+
+  // Notifications
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const notifications = await storage.getUserNotifications(req.session.userId);
+      res.json(notifications);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

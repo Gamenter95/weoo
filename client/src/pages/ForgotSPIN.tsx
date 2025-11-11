@@ -21,6 +21,10 @@ export default function ForgotSPIN() {
   const forgotSpinMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const res = await apiRequest("POST", "/api/auth/forgot-spin", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error);
+      }
       return await res.json();
     },
     onSuccess: () => {

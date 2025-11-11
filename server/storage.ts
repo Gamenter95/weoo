@@ -1,7 +1,7 @@
-import { type User, type InsertUser, fundRequests, withdrawRequests, transactions } from "@shared/schema";
+import { type User, type InsertUser, fundRequests, withdrawRequests, transactions, notifications } from "@shared/schema";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { eq, or } from "drizzle-orm";
+import { eq, or, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -16,6 +16,15 @@ export interface IStorage {
   createFundRequest(data: any): Promise<any>;
   createWithdrawRequest(data: any): Promise<any>;
   createTransaction(data: any): Promise<any>;
+  getAllUsers(): Promise<any[]>;
+  getAllFundRequests(): Promise<any[]>;
+  getAllWithdrawRequests(): Promise<any[]>;
+  getFundRequest(id: string): Promise<any>;
+  getWithdrawRequest(id: string): Promise<any>;
+  updateFundRequestStatus(id: string, status: string): Promise<void>;
+  updateWithdrawRequestStatus(id: string, status: string): Promise<void>;
+  createNotification(data: any): Promise<any>;
+  getUserNotifications(userId: string): Promise<any[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -80,6 +89,76 @@ export class DbStorage implements IStorage {
   async createTransaction(data: any): Promise<any> {
     const [transaction] = await db.insert(transactions).values(data).returning();
     return transaction;
+  }
+
+  async getAllUsers(): Promise<any[]> {
+    return await db.select().from(users);
+  }
+
+  async getAllFundRequests(): Promise<any[]> {
+    const requests = await db.select({
+      id: fundRequests.id,
+      userId: fundRequests.userId,
+      amount: fundRequests.amount,
+      afterTaxAmount: fundRequests.afterTaxAmount,
+      utr: fundRequests.utr,
+      status: fundRequests.status,
+      createdAt: fundRequests.createdAt,
+      username: users.username,
+    })
+    .from(fundRequests)
+    .leftJoin(users, eq(fundRequests.userId, users.id))
+    .orderBy(desc(fundRequests.createdAt));
+    
+    return requests;
+  }
+
+  async getAllWithdrawRequests(): Promise<any[]> {
+    const requests = await db.select({
+      id: withdrawRequests.id,
+      userId: withdrawRequests.userId,
+      amount: withdrawRequests.amount,
+      afterTaxAmount: withdrawRequests.afterTaxAmount,
+      upiId: withdrawRequests.upiId,
+      status: withdrawRequests.status,
+      createdAt: withdrawRequests.createdAt,
+      username: users.username,
+    })
+    .from(withdrawRequests)
+    .leftJoin(users, eq(withdrawRequests.userId, users.id))
+    .orderBy(desc(withdrawRequests.createdAt));
+    
+    return requests;
+  }
+
+  async getFundRequest(id: string): Promise<any> {
+    const [request] = await db.select().from(fundRequests).where(eq(fundRequests.id, id));
+    return request;
+  }
+
+  async getWithdrawRequest(id: string): Promise<any> {
+    const [request] = await db.select().from(withdrawRequests).where(eq(withdrawRequests.id, id));
+    return request;
+  }
+
+  async updateFundRequestStatus(id: string, status: string): Promise<void> {
+    await db.update(fundRequests).set({ status }).where(eq(fundRequests.id, id));
+  }
+
+  async updateWithdrawRequestStatus(id: string, status: string): Promise<void> {
+    await db.update(withdrawRequests).set({ status }).where(eq(withdrawRequests.id, id));
+  }
+
+  async createNotification(data: any): Promise<any> {
+    const [notification] = await db.insert(notifications).values(data).returning();
+    return notification;
+  }
+
+  async getUserNotifications(userId: string): Promise<any[]> {
+    return await db.select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
   }
 }
 
