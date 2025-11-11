@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, Plus, Send, ArrowDownToLine, Home, Wallet, CreditCard, Globe, User, LogOut, Bell } from "lucide-react";
+import { Menu, Plus, Send, ArrowDownToLine, Home, Wallet, CreditCard, Globe, User, LogOut, Bell, Phone, MessageCircle } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,6 +20,12 @@ interface UserData {
   wwid: string;
   balance: string;
 }
+
+// Mock notifications data - replace with actual data fetching
+const notifications = [
+  { id: 1, message: "New transaction" },
+  { id: 2, message: "Welcome bonus" },
+];
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -64,7 +69,8 @@ export default function Dashboard() {
     { icon: Send, label: "Pay to User", onClick: () => { setIsMenuOpen(false); setLocation("/pay-to-user"); } },
     { icon: ArrowDownToLine, label: "Withdraw", onClick: () => { setIsMenuOpen(false); setLocation("/withdraw"); } },
     { icon: Globe, label: "API Gateway", onClick: () => { setIsMenuOpen(false); toast({ title: "Coming Soon", description: "API Gateway feature coming soon!" }); } },
-    { icon: User, label: "Profile", onClick: () => { setIsMenuOpen(false); toast({ title: "Coming Soon", description: "Profile feature coming soon!" }); } },
+    { icon: User, label: "Profile", onClick: () => { setIsMenuOpen(false); setLocation("/profile"); } },
+    { icon: MessageCircle, label: "Contact Us", onClick: () => { setIsMenuOpen(false); window.open("https://t.me/WeooWallet", "_blank"); } },
   ];
 
   if (isLoading || !user) {
@@ -131,14 +137,28 @@ export default function Dashboard() {
           </SheetContent>
         </Sheet>
         <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent" data-testid="text-app-name">WeooWallet</h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setLocation("/notifications")}
-          className="hover:bg-primary/10 hover:scale-105 active:scale-95 transition-all relative"
-        >
-          <Bell className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.open("https://t.me/WeooWallet", "_blank")}
+            className="hover:bg-primary/10 hover:scale-105 active:scale-95 transition-all"
+          >
+            <Phone className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            data-testid="button-notifications"
+            onClick={() => setLocation("/notifications")}
+            className="hover:bg-primary/10 hover:scale-105 active:scale-95 transition-all relative"
+          >
+            <Bell className="h-5 w-5" />
+            {notifications && notifications.length > 0 && (
+              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+            )}
+          </Button>
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">

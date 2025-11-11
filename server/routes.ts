@@ -467,7 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newBalance = (parseFloat(user.balance) + parseFloat(request.afterTaxAmount)).toFixed(2);
       await storage.updateUserBalance(user.id, newBalance);
       await storage.updateFundRequestStatus(req.params.id, "approved");
-      
+
       await storage.createNotification({
         userId: user.id,
         type: "fund_approved",
@@ -489,7 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.updateFundRequestStatus(req.params.id, "declined");
-      
+
       await storage.createNotification({
         userId: request.userId,
         type: "fund_declined",
@@ -511,7 +511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.updateWithdrawRequestStatus(req.params.id, "approved");
-      
+
       await storage.createNotification({
         userId: request.userId,
         type: "withdraw_approved",
@@ -539,7 +539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.updateWithdrawRequestStatus(req.params.id, "declined");
-      
+
       await storage.createNotification({
         userId: request.userId,
         type: "withdraw_declined",
@@ -556,16 +556,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Notifications
   app.get("/api/notifications", async (req, res) => {
     try {
-      if (!req.session.userId) {
+      if (!req.session?.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const notifications = await storage.getUserNotifications(req.session.userId);
+      const notifications = await storage.getNotifications(req.session.userId);
       res.json(notifications);
     } catch (error: any) {
       res.status(500).json({ error: "Failed to fetch notifications" });
     }
   });
+
+  // Profile Update
+  app.post("/api/profile/update", async (req, res) => {
+    if (!req.session?.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const { field, value, verifyWith } = req.body;
+
+    const user = await storage.getUserById(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Verify S-PIN or password
+    if (field === "spin") {
+      // Verify with password
+      const validPassword = await bcrypt.compare(verifyWith, user.password);
+      if (!validPassword) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+    } else {
+      // Verify with S-PIN
+      const validSpin = await bcrypt.compare(verifyWith, user.spin);
+      if (!validSpin) {
+        return res.status(401).json({ error: "Invalid S-PIN" });
+      }
+    }
+
+    // Handle WWID change - charge ₹10
+    if (field === "wwid") {
+      const balance = parseFloat(user.balance);
+      if (balance < 10) {
+        return res.status(400).json({ error: "Insufficient balance. Need ₹10 to change WWID." });
+      }
+
+      // Check if WWID is already taken
+      const existingUser = await storage.getUserByWWID(value);
+      if (existingUser) {
+        return res.status(400).json({ error: "WWID already taken" });
+      }
+
+      const newBalance = (balance - 10).toFixed(2);
+      await storage.updateUserBalance(req.session.userId, newBalance);
+      await storage.updateUserField(req.session.userId, "wwid", value);
+
+      return res.json({
+        success: true,
+        message: "WWID changed successfully. ₹10 deducted from your balance.",
+      });
+    }
+
+    // Handle other field updates
+    let updateValue = value;
+    if (field === "password" || field === "spin") {
+      updateValue = await bcrypt.hash(value, 10);
+    }
+
+    await storage.updateUserField(req.session.userId, field, updateValue);
+
+    res.json({
+      success: true,
+      message: `${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`,
+    });
+  });
+
 
   const httpServer = createServer(app);
 

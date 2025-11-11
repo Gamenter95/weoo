@@ -25,6 +25,7 @@ export interface IStorage {
   updateWithdrawRequestStatus(id: string, status: string): Promise<void>;
   createNotification(data: any): Promise<any>;
   getUserNotifications(userId: string): Promise<any[]>;
+  updateUserField(userId: string, field: string, value: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -109,7 +110,7 @@ export class DbStorage implements IStorage {
     .from(fundRequests)
     .leftJoin(users, eq(fundRequests.userId, users.id))
     .orderBy(desc(fundRequests.createdAt));
-    
+
     return requests;
   }
 
@@ -127,7 +128,7 @@ export class DbStorage implements IStorage {
     .from(withdrawRequests)
     .leftJoin(users, eq(withdrawRequests.userId, users.id))
     .orderBy(desc(withdrawRequests.createdAt));
-    
+
     return requests;
   }
 
@@ -159,6 +160,15 @@ export class DbStorage implements IStorage {
       .from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
+  }
+
+  async getUserByWWID(wwid: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.wwid, wwid));
+    return user;
+  }
+
+  async updateUserField(userId: string, field: string, value: string): Promise<void> {
+    await db.update(users).set({ [field]: value }).where(eq(users.id, userId));
   }
 }
 
