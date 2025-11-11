@@ -1,6 +1,6 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type User, type InsertUser, fundRequests, withdrawRequests, transactions } from "@shared/schema";
 import { db } from "./db";
-import { users, schema } from "@shared/schema";
+import { users } from "@shared/schema";
 import { eq, or } from "drizzle-orm";
 
 export interface IStorage {
@@ -68,17 +68,17 @@ export class DbStorage implements IStorage {
   }
 
   async createFundRequest(data: any): Promise<any> {
-    const [request] = await db.insert(schema.fundRequests).values(data).returning();
+    const [request] = await db.insert(fundRequests).values(data).returning();
     return request;
   }
 
   async createWithdrawRequest(data: any): Promise<any> {
-    const [request] = await db.insert(schema.withdrawRequests).values(data).returning();
+    const [request] = await db.insert(withdrawRequests).values(data).returning();
     return request;
   }
 
   async createTransaction(data: any): Promise<any> {
-    const [transaction] = await db.insert(schema.transactions).values(data).returning();
+    const [transaction] = await db.insert(transactions).values(data).returning();
     return transaction;
   }
 }
