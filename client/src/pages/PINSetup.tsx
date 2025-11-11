@@ -24,10 +24,8 @@ export default function PINSetup() {
 
   const spinMutation = useMutation({
     mutationFn: async (data: { spin: string }) => {
-      return await apiRequest("/api/auth/setup-spin", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const res = await apiRequest("POST", "/api/auth/setup-spin", data);
+      return await res.json();
     },
     onSuccess: () => {
       toast({

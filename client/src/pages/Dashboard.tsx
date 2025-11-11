@@ -39,9 +39,8 @@ export default function Dashboard() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/auth/logout", {
-        method: "POST",
-      });
+      const res = await apiRequest("POST", "/api/auth/logout");
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.clear();

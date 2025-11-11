@@ -32,10 +32,8 @@ export default function WWIDSetup() {
 
   const wwidMutation = useMutation({
     mutationFn: async (data: { wwid: string }) => {
-      return await apiRequest("/api/auth/setup-wwid", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const res = await apiRequest("POST", "/api/auth/setup-wwid", data);
+      return await res.json();
     },
     onSuccess: () => {
       toast({

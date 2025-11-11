@@ -19,10 +19,8 @@ export default function PINVerify() {
 
   const verifyMutation = useMutation({
     mutationFn: async (data: { spin: string }) => {
-      return await apiRequest("/api/auth/verify-pin", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const res = await apiRequest("POST", "/api/auth/verify-pin", data);
+      return await res.json();
     },
     onSuccess: () => {
       toast({
