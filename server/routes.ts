@@ -568,6 +568,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Transactions
+  app.get("/api/transactions", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const transactions = await storage.getUserTransactions(req.session.userId);
+      const users = await storage.getAllUsers();
+      
+      const transactionsWithUsers = transactions.map(transaction => {
+        const sender = users.find(u => u.id === transaction.senderId);
+        const recipient = users.find(u => u.id === transaction.recipientId);
+        return {
+          ...transaction,
+          senderWWID: sender?.wwid,
+          senderUsername: sender?.username,
+          recipientWWID: recipient?.wwid,
+          recipientUsername: recipient?.username,
+        };
+      });
+
+      res.json(transactionsWithUsers);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch transactions" });
+    }
+  });
+
   // Profile Update
   app.post("/api/profile/update", async (req, res) => {
     if (!req.session?.userId) {
@@ -695,10 +723,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let token: string;
         let isUnique = false;
         let attempts = 0;
-        const maxAttempts = 5;
+        const maxAttempts = 10;
 
         while (!isUnique && attempts < maxAttempts) {
-          token = crypto.randomBytes(24).toString('base64url').substring(0, 32);
+          token = crypto.randomBytes(4).toString('base64url').substring(0, 5);
           
           const existingSettings = await storage.getApiSettingsByToken(token);
           if (!existingSettings) {

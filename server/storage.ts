@@ -30,6 +30,7 @@ export interface IStorage {
   createApiSettings(data: InsertApiSettings): Promise<ApiSettings>;
   updateApiSettings(userId: string, data: Partial<InsertApiSettings>): Promise<ApiSettings | undefined>;
   getApiSettingsByToken(token: string): Promise<ApiSettings | undefined>;
+  getUserTransactions(userId: string): Promise<any[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -160,10 +161,24 @@ export class DbStorage implements IStorage {
   }
 
   async getUserNotifications(userId: string): Promise<any[]> {
-    return await db.select()
+    return db
+      .select()
       .from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
+  }
+
+  async getUserTransactions(userId: string): Promise<any[]> {
+    return db
+      .select()
+      .from(transactions)
+      .where(
+        or(
+          eq(transactions.senderId, userId),
+          eq(transactions.recipientId, userId)
+        )
+      )
+      .orderBy(desc(transactions.createdAt));
   }
 
   async updateUserField(userId: string, field: string, value: string): Promise<void> {

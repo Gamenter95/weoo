@@ -19,6 +19,7 @@ import Admin from "@/pages/Admin";
 import Notifications from "@/pages/Notifications";
 import Profile from "@/pages/Profile";
 import ApiSettings from "@/pages/ApiSettings";
+import Transactions from "@/pages/Transactions";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/pay-to-user" component={PayToUser} />
       <Route path="/withdraw" component={Withdraw} />
       <Route path="/secret" component={Secret} />
+      <Route path="/transactions" component={Transactions} />
       <Route path="/admin" component={Admin} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/profile" component={Profile} />

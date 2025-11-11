@@ -37,9 +37,9 @@ export default function PayToUser() {
         title: "Payment Successful",
         description: "Money sent successfully!",
       });
-      setLocation("/dashboard");
+      window.location.href = "/dashboard";
     },
-    onError: (error: any) => {
+    onError: (error: any) {
       toast({
         variant: "destructive",
         title: "Payment Failed",
