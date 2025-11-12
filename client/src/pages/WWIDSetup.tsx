@@ -43,11 +43,21 @@ export default function WWIDSetup() {
       setLocation("/pin-setup");
     },
     onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "WWID Setup Failed",
-        description: error.message || "WWID already taken",
-      });
+      const errorData = error.response?.data || error;
+      if (errorData.sessionExpired) {
+        toast({
+          variant: "destructive",
+          title: "Session Expired",
+          description: "Please start registration again.",
+        });
+        setTimeout(() => setLocation("/register"), 2000);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to create WWID",
+        });
+      }
     },
   });
 
