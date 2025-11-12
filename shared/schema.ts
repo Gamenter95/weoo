@@ -103,10 +103,6 @@ export const toggleApiSchema = z.object({
   enabled: z.boolean(),
 });
 
-export const updateDomainSchema = z.object({
-  domain: z.string().url("Invalid domain URL"),
-});
-
 export const fundRequests = pgTable("fund_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -149,7 +145,7 @@ export const apiSettings = pgTable("api_settings", {
   userId: text("user_id").notNull().unique().references(() => users.id),
   apiEnabled: boolean("api_enabled").notNull().default(false),
   apiToken: text("api_token"),
-  domain: text("domain").default("https://weoo.replit.app"),
+  domain: text("domain").default("https://wwallet.koyeb.app"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
