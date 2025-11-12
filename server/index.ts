@@ -1,29 +1,31 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import path from "path";
-import { fileURLToPath } from "url";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./init-db";
+import { pool } from "./db";
 
 const app = express();
 
-// Needed for __dirname in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-declare module "http" {
+declare module 'http' {
   interface IncomingMessage {
-    rawBody: unknown;
+    rawBody: unknown
   }
 }
+
+// PostgreSQL session store
+const PgStore = connectPgSimple(session);
 
 // Session configuration
 app.use(
   session({
-    secret:
-      process.env.SESSION_SECRET ||
-      "weoo-wallet-secret-key-change-in-production",
+    store: new PgStore({
+      pool: pool,
+      tableName: "user_sessions",
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || "weoo-wallet-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -34,16 +36,13 @@ app.use(
   })
 );
 
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  })
-);
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: false }));
 
-// Log API routes
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -62,7 +61,11 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-      if (logLine.length > 80) logLine = logLine.slice(0, 79) + "…";
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
       log(logLine);
     }
   });
@@ -74,38 +77,33 @@ app.use((req, res, next) => {
   await initializeDatabase();
   const server = await registerRoutes(app);
 
-  app.use(
-    (err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-      console.error("❌ Server error:", err);
-    }
-  );
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
+    res.status(status).json({ message });
+    throw err;
+  });
+
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    // Serve frontend from dist/client after Vite build
-    const clientPath = path.join(__dirname, "public");
-    app.use(express.static(clientPath));
-
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(clientPath, "index.html"));
-    });
-
     serveStatic(app);
   }
 
-  const port = parseInt(process.env.PORT || "8080", 10);
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`✅ Server running on port ${port}`);
-    }
-  );
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || '5000', 10);
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
+  });
 })();
