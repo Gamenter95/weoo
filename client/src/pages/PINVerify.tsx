@@ -30,11 +30,21 @@ export default function PINVerify() {
       setLocation("/dashboard");
     },
     onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Verification Failed",
-        description: error.message || "Invalid S-PIN",
-      });
+      const errorData = error.response?.data || error;
+      if (errorData.sessionExpired) {
+        toast({
+          variant: "destructive",
+          title: "Session Expired",
+          description: "Please login again.",
+        });
+        setTimeout(() => setLocation("/login"), 2000);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: error.message || "Invalid S-PIN",
+        });
+      }
       setPin(["", "", "", ""]);
       inputRefs.current[0]?.focus();
     },
@@ -60,7 +70,7 @@ export default function PINVerify() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (pin.every(d => d !== "")) {
       verifyMutation.mutate({ spin: pin.join("") });
     }
