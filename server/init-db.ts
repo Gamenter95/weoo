@@ -9,7 +9,7 @@ export async function initializeDatabase() {
         user_id TEXT NOT NULL UNIQUE REFERENCES users(id),
         api_enabled BOOLEAN NOT NULL DEFAULT false,
         api_token TEXT,
-        domain TEXT DEFAULT 'https://weoo.replit.app',
+        domain TEXT DEFAULT 'https://wwallet.koyeb.app',
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
