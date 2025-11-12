@@ -2,6 +2,7 @@ import { type User, type InsertUser, type ApiSettings, type InsertApiSettings, f
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq, or, desc, sql } from "drizzle-orm";
+import { generateId } from "./utils";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -191,7 +192,16 @@ export class DbStorage implements IStorage {
   }
 
   async createApiSettings(data: InsertApiSettings): Promise<ApiSettings> {
-    const [settings] = await db.insert(apiSettings).values(data).returning();
+    const [settings] = await db
+      .insert(apiSettings)
+      .values({
+        id: generateId(),
+        userId: data.userId,
+        apiEnabled: data.apiEnabled,
+        apiToken: data.apiToken,
+        domain: data.domain || "https://wwallet.koyeb.app",
+      })
+      .returning();
     return settings;
   }
 
