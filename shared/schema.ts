@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, numeric, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -60,6 +60,38 @@ export const payToUserSchema = z.object({
   recipientWWID: z.string().min(5),
   amount: z.number().min(1, "Amount must be at least ₹1"),
   spin: z.string().regex(/^\d{4}$/, "S-PIN must be exactly 4 digits"),
+});
+
+export const createGiftCodeSchema = z.object({
+  totalUsers: z.number().min(1, "Must allow at least 1 user"),
+  amountPerUser: z.number().min(1, "Amount per user must be at least ₹1"),
+  comment: z.string().optional(),
+  code: z.string().optional(),
+});
+
+export const claimGiftCodeSchema = z.object({
+  code: z.string().min(1, "Code is required"),
+});
+
+export const giftCodes = pgTable("gift_codes", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: text("creator_id").notNull().references(() => users.id),
+  code: text("code").notNull().unique(),
+  totalUsers: integer("total_users").notNull(),
+  remainingUsers: integer("remaining_users").notNull(),
+  amountPerUser: numeric("amount_per_user", { precision: 10, scale: 2 }).notNull(),
+  totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).notNull(),
+  comment: text("comment"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const giftCodeClaims = pgTable("gift_code_claims", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  giftCodeId: text("gift_code_id").notNull().references(() => giftCodes.id),
+  userId: text("user_id").notNull().references(() => users.id),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  claimedAt: timestamp("claimed_at").defaultNow().notNull(),
 });
 
 export const withdrawSchema = z.object({
@@ -142,3 +174,7 @@ export type PayToUserInput = z.infer<typeof payToUserSchema>;
 export type WithdrawInput = z.infer<typeof withdrawSchema>;
 export type ApiSettings = typeof apiSettings.$inferSelect;
 export type InsertApiSettings = z.infer<typeof insertApiSettingsSchema>;
+export type CreateGiftCodeInput = z.infer<typeof createGiftCodeSchema>;
+export type ClaimGiftCodeInput = z.infer<typeof claimGiftCodeSchema>;
+export type GiftCode = typeof giftCodes.$inferSelect;
+export type GiftCodeClaim = typeof giftCodeClaims.$inferSelect;
