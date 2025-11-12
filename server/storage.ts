@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type ApiSettings, type InsertApiSettings, fundRequests, withdrawRequests, transactions, notifications, apiSettings } from "@shared/schema";
+import { type User, type InsertUser, type ApiSettings, type InsertApiSettings, fundRequests, withdrawRequests, transactions, notifications, apiSettings, giftCodes, giftCodeClaims } from "@shared/schema";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq, or, desc, sql } from "drizzle-orm";
@@ -24,7 +24,7 @@ export interface IStorage {
   getWithdrawRequest(id: string): Promise<any>;
   updateFundRequestStatus(id: string, status: string): Promise<void>;
   updateWithdrawRequestStatus(id: string, status: string): Promise<void>;
-  createNotification(data: any): Promise<any>;
+  createNotification(data: { userId: string; type: string; title: string; message: string }): Promise<any>;
   getUserNotifications(userId: string): Promise<any[]>;
   updateUserField(userId: string, field: string, value: string): Promise<void>;
   getApiSettings(userId: string): Promise<ApiSettings | undefined>;
@@ -32,6 +32,15 @@ export interface IStorage {
   updateApiSettings(userId: string, data: Partial<InsertApiSettings>): Promise<ApiSettings | undefined>;
   getApiSettingsByToken(token: string): Promise<ApiSettings | undefined>;
   getUserTransactions(userId: string): Promise<any[]>;
+
+  // Gift Codes
+  createGiftCode(data: { creatorId: string; code: string; totalUsers: number; amountPerUser: string; totalAmount: string; comment?: string }): Promise<any>;
+  getGiftCodeByCode(code: string): Promise<any>;
+  getUserGiftCodes(userId: string): Promise<any[]>;
+  getGiftCodeClaims(giftCodeId: string): Promise<any[]>;
+  claimGiftCode(giftCodeId: string, userId: string, amount: string): Promise<any>;
+  updateGiftCodeRemainingUsers(giftCodeId: string, remaining: number): Promise<any>;
+  deactivateGiftCode(giftCodeId: string): Promise<any>;
 }
 
 export class DbStorage implements IStorage {
@@ -156,7 +165,7 @@ export class DbStorage implements IStorage {
     await db.update(withdrawRequests).set({ status }).where(eq(withdrawRequests.id, id));
   }
 
-  async createNotification(data: any): Promise<any> {
+  async createNotification(data: { userId: string; type: string; title: string; message: string }) {
     const [notification] = await db.insert(notifications).values(data).returning();
     return notification;
   }
@@ -216,6 +225,59 @@ export class DbStorage implements IStorage {
   async getApiSettingsByToken(token: string): Promise<ApiSettings | undefined> {
     const [settings] = await db.select().from(apiSettings).where(eq(apiSettings.apiToken, token));
     return settings;
+  }
+
+  async createGiftCode(data: { creatorId: string; code: string; totalUsers: number; amountPerUser: string; totalAmount: string; comment?: string }) {
+    const [giftCode] = await db.insert(giftCodes).values({
+      id: generateId(),
+      ...data,
+      remainingUsers: data.totalUsers,
+    }).returning();
+    return giftCode;
+  }
+
+  async getGiftCodeByCode(code: string) {
+    const [giftCode] = await db.select().from(giftCodes).where(eq(giftCodes.code, code));
+    return giftCode;
+  }
+
+  async getUserGiftCodes(userId: string) {
+    return await db.select().from(giftCodes).where(eq(giftCodes.creatorId, userId)).orderBy(desc(giftCodes.createdAt));
+  }
+
+  async getGiftCodeClaims(giftCodeId: string) {
+    const claims = await db.select().from(giftCodeClaims).where(eq(giftCodeClaims.giftCodeId, giftCodeId)).orderBy(desc(giftCodeClaims.claimedAt));
+    const claimsWithUsers = await Promise.all(
+      claims.map(async (claim) => {
+        const user = await this.getUser(claim.userId);
+        return {
+          ...claim,
+          username: user?.username,
+          wwid: user?.wwid,
+        };
+      })
+    );
+    return claimsWithUsers;
+  }
+
+  async claimGiftCode(giftCodeId: string, userId: string, amount: string) {
+    const [claim] = await db.insert(giftCodeClaims).values({
+      id: generateId(),
+      giftCodeId,
+      userId,
+      amount,
+    }).returning();
+    return claim;
+  }
+
+  async updateGiftCodeRemainingUsers(giftCodeId: string, remaining: number) {
+    const [updated] = await db.update(giftCodes).set({ remainingUsers: remaining }).where(eq(giftCodes.id, giftCodeId)).returning();
+    return updated;
+  }
+
+  async deactivateGiftCode(giftCodeId: string) {
+    const [updated] = await db.update(giftCodes).set({ isActive: false }).where(eq(giftCodes.id, giftCodeId)).returning();
+    return updated;
   }
 }
 

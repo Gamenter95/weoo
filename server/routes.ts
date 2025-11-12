@@ -814,22 +814,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/api-settings/update-domain", async (req, res) => {
-    try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const validatedData = req.body as { domain: string };
-      const { domain } = validatedData;
-      
-      const settings = await storage.updateApiSettings(req.session.userId, { domain });
-
-      res.json(settings);
-    } catch (error: any) {
-      res.status(400).json({ error: "Failed to update domain" });
-    }
-  });
 
   // Public API Wallet Endpoint
   app.get("/api/wallet", async (req, res) => {
@@ -911,6 +895,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Gift Code Routes
+  app.post("/api/gift-codes/create", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { totalUsers, amountPerUser, comment, code } = req.body;
+
+      if (!totalUsers || totalUsers <= 0) {
+        return res.status(400).json({ error: "Number of users must be at least 1" });
+      }
+
+      if (!amountPerUser || amountPerUser <= 0) {
+        return res.status(400).json({ error: "Amount per user must be at least ₹1" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const totalAmount = totalUsers * amountPerUser;
+      const userBalance = parseFloat(user.balance);
+
+      if (userBalance < totalAmount) {
+        return res.status(400).json({ error: `Insufficient balance. You need ₹${totalAmount.toFixed(2)} but have ₹${userBalance.toFixed(2)}` });
+      }
+
+      // Generate code if not provided
+      let giftCode = code;
+      if (!giftCode) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        do {
+          giftCode = '';
+          for (let i = 0; i < 7; i++) {
+            giftCode += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+        } while (await storage.getGiftCodeByCode(giftCode));
+      } else {
+        giftCode = giftCode.toUpperCase();
+        const existing = await storage.getGiftCodeByCode(giftCode);
+        if (existing) {
+          return res.status(400).json({ error: "This custom code is already taken. Please choose a different one." });
+        }
+      }
+
+      const newBalance = (userBalance - totalAmount).toFixed(2);
+      await storage.updateUserBalance(req.session.userId, newBalance);
+
+      const created = await storage.createGiftCode({
+        creatorId: req.session.userId,
+        code: giftCode,
+        totalUsers,
+        amountPerUser: amountPerUser.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+        comment,
+      });
+
+      res.json({ success: true, giftCode: created });
+    } catch (error: any) {
+      console.error("Gift code creation error:", error);
+      const errorMessage = error.message?.includes("relation") 
+        ? "Database tables not initialized. Please restart the application."
+        : error.message || "Failed to create gift code. Please try again.";
+      res.status(400).json({ error: errorMessage });
+    }
+  });
+
+  app.post("/api/gift-codes/claim", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { code } = req.body;
+
+      if (!code || !code.trim()) {
+        return res.status(400).json({ error: "Please enter a gift code" });
+      }
+
+      const giftCode = await storage.getGiftCodeByCode(code.toUpperCase());
+      if (!giftCode) {
+        return res.status(404).json({ error: "This gift code doesn't exist. Please check and try again." });
+      }
+
+      if (!giftCode.isActive) {
+        return res.status(400).json({ error: "This gift code has been stopped by the creator and is no longer active" });
+      }
+
+      if (giftCode.remainingUsers <= 0) {
+        return res.status(400).json({ error: "This gift code has been fully claimed by other users" });
+      }
+
+      const claims = await storage.getGiftCodeClaims(giftCode.id);
+      const alreadyClaimed = claims.some(claim => claim.userId === req.session.userId);
+      if (alreadyClaimed) {
+        return res.status(400).json({ error: "You have already claimed this gift code" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const amount = parseFloat(giftCode.amountPerUser);
+      const newBalance = (parseFloat(user.balance) + amount).toFixed(2);
+      await storage.updateUserBalance(req.session.userId, newBalance);
+
+      await storage.claimGiftCode(giftCode.id, req.session.userId, amount.toFixed(2));
+      await storage.updateGiftCodeRemainingUsers(giftCode.id, giftCode.remainingUsers - 1);
+
+      await storage.createNotification({
+        userId: req.session.userId,
+        type: "gift_claimed",
+        title: "Gift Code Claimed",
+        message: `You received ₹${amount.toFixed(2)} from gift code ${giftCode.code}`,
+      });
+
+      res.json({ success: true, amount: amount.toFixed(2), newBalance });
+    } catch (error: any) {
+      console.error("Gift code claim error:", error);
+      const errorMessage = error.message?.includes("relation") 
+        ? "Database tables not initialized. Please restart the application."
+        : error.message || "Failed to claim gift code. Please try again.";
+      res.status(400).json({ error: errorMessage });
+    }
+  });
+
+  app.get("/api/gift-codes/my-codes", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const codes = await storage.getUserGiftCodes(req.session.userId);
+      res.json(codes);
+    } catch (error: any) {
+      console.error("Failed to fetch gift codes:", error);
+      res.status(500).json({ error: "Failed to load your gift codes. Please try again." });
+    }
+  });
+
+  app.get("/api/gift-codes/:id/claims", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const claims = await storage.getGiftCodeClaims(req.params.id);
+      res.json(claims);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch claims" });
+    }
+  });
+
+  app.post("/api/gift-codes/:id/stop", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const giftCode = await storage.getGiftCodeByCode(req.params.id);
+      if (!giftCode) {
+        return res.status(404).json({ error: "Gift code not found" });
+      }
+
+      if (giftCode.creatorId !== req.session.userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      await storage.deactivateGiftCode(giftCode.id);
+
+      const refundAmount = parseFloat(giftCode.amountPerUser) * giftCode.remainingUsers;
+      if (refundAmount > 0) {
+        const user = await storage.getUser(req.session.userId);
+        if (user) {
+          const newBalance = (parseFloat(user.balance) + refundAmount).toFixed(2);
+          await storage.updateUserBalance(req.session.userId, newBalance);
+        }
+      }
+
+      res.json({ success: true, refunded: refundAmount.toFixed(2) });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to stop gift code" });
+    }
+  });
 
   const httpServer = createServer(app);
 
