@@ -35,11 +35,21 @@ export default function PINSetup() {
       setLocation("/login");
     },
     onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Setup Failed",
-        description: error.message || "Failed to create account",
-      });
+      const errorData = error.response?.data || error;
+      if (errorData.sessionExpired) {
+        toast({
+          variant: "destructive",
+          title: "Session Expired",
+          description: "Please start registration again.",
+        });
+        setTimeout(() => setLocation("/register"), 2000);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to setup S-PIN",
+        });
+      }
     },
   });
 
@@ -63,7 +73,7 @@ export default function PINSetup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (step === "create") {
       if (pin.every(d => d !== "")) {
         setStep("confirm");
@@ -72,7 +82,7 @@ export default function PINSetup() {
     } else {
       const pinString = pin.join("");
       const confirmPinString = confirmPin.join("");
-      
+
       if (pinString === confirmPinString) {
         spinMutation.mutate({ spin: pinString });
       } else {
