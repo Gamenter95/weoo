@@ -24,15 +24,20 @@ app.use(
       pool: pool,
       tableName: "user_sessions",
       createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 minutes
     }),
     secret: process.env.SESSION_SECRET || "weoo-wallet-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
+    name: "weoo.sid",
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
     },
+    proxy: process.env.NODE_ENV === "production",
   })
 );
 
