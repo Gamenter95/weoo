@@ -145,7 +145,7 @@ export default function ApiSettings() {
   );
 
   const getEndpointUrl = () => {
-    const domain = settings?.domain || "https://weoo.replit.app";
+    const domain = settings?.domain || "https://wwallet.koyeb.app";
     const token = settings?.apiToken || "{TOKEN}";
     return `${domain}/api/wallet?type=wallet&token=${token}&wwid={WWID}&amount={AMOUNT}`;
   };
