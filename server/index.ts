@@ -83,25 +83,19 @@ app.use((req, res, next) => {
     }
   );
 
-import path from "path";
-import { fileURLToPath } from "url";
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    // Serve frontend from dist/client after Vite build
+    const clientPath = path.join(__dirname, "../client");
+    app.use(express.static(clientPath));
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(clientPath, "index.html"));
+    });
 
-if (app.get("env") === "development") {
-  await setupVite(app, server);
-} else {
-  // serve the built static frontend
-  const publicPath = path.join(__dirname, "public");
-  app.use(express.static(publicPath));
-
-  // catch-all: send index.html for SPA routes
-  app.get("*", (_, res) => {
-    res.sendFile(path.join(publicPath, "index.html"));
-  });
-}
-
+    serveStatic(app);
+  }
 
   const port = parseInt(process.env.PORT || "8080", 10);
   server.listen(
