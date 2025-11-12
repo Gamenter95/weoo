@@ -87,7 +87,7 @@ app.use((req, res, next) => {
     await setupVite(app, server);
   } else {
     // Serve frontend from dist/client after Vite build
-    const clientPath = path.join(__dirname, "../client");
+    const clientPath = path.join(__dirname, "public");
     app.use(express.static(clientPath));
 
     app.get("*", (_req, res) => {
