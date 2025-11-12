@@ -712,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.session.userId,
           apiEnabled: false,
           apiToken: null,
-          domain: "https://weoo.replit.app",
+          domain: "https://wwallet.koyeb.app",
         });
       }
 
@@ -738,7 +738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.session.userId,
           apiEnabled: enabled,
           apiToken: null,
-          domain: "https://weoo.replit.app",
+          domain: "https://wwallet.koyeb.app",
         });
       } else {
         settings = await storage.updateApiSettings(req.session.userId, { apiEnabled: enabled });
@@ -785,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.session.userId,
           apiEnabled: false,
           apiToken: newToken,
-          domain: "https://weoo.replit.app",
+          domain: "https://wwallet.koyeb.app",
         });
       } else {
         settings = await storage.updateApiSettings(req.session.userId, { apiToken: newToken });
@@ -915,4 +915,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   return httpServer;
-  }
+}
