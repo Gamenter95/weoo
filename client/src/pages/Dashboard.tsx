@@ -68,6 +68,7 @@ export default function Dashboard() {
     { icon: ArrowDownToLine, label: "Withdraw", onClick: () => { setIsMenuOpen(false); setLocation("/withdraw"); } },
     { icon: Wallet, label: "Transactions", onClick: () => { setIsMenuOpen(false); setLocation("/transactions"); } },
     { icon: Globe, label: "API Gateway", onClick: () => { setIsMenuOpen(false); setLocation("/api"); } },
+    { icon: CreditCard, label: "Gift Codes", onClick: () => { setIsMenuOpen(false); setLocation("/claim-code"); } },
     { icon: User, label: "Profile", onClick: () => { setIsMenuOpen(false); setLocation("/profile"); } },
     { icon: MessageCircle, label: "Contact Us", onClick: () => { setIsMenuOpen(false); window.open("https://t.me/WeooWallet", "_blank"); } },
   ];
@@ -97,16 +98,16 @@ export default function Dashboard() {
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 bg-card/95 backdrop-blur-lg">
-            <SheetHeader>
+          <SheetContent side="left" className="w-80 bg-card/95 backdrop-blur-lg flex flex-col">
+            <SheetHeader className="flex-shrink-0">
               <SheetTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Menu</SheetTitle>
             </SheetHeader>
-            <div className="mt-6 p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
+            <div className="mt-6 p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20 flex-shrink-0">
               <p className="text-sm text-muted-foreground">Logged in as</p>
               <p className="font-bold text-lg">{user.username}</p>
               <p className="text-sm font-mono text-primary">{user.wwid}</p>
             </div>
-            <nav className="mt-6 space-y-2">
+            <nav className="mt-6 space-y-2 flex-1 overflow-y-auto">
               {menuItems.map((item) => (
                 <button
                   key={item.label}

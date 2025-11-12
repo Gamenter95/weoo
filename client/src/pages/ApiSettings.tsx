@@ -32,7 +32,6 @@ interface Notification {
 export default function ApiSettings() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [customDomain, setCustomDomain] = useState("");
 
   const { data: settings, isLoading } = useQuery<ApiSettings>({
     queryKey: ["/api/api-settings"],
@@ -41,12 +40,6 @@ export default function ApiSettings() {
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
   });
-
-  useEffect(() => {
-    if (settings?.domain) {
-      setCustomDomain(settings.domain);
-    }
-  }, [settings]);
 
   const toggleMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -107,27 +100,6 @@ export default function ApiSettings() {
         variant: "destructive",
         title: "Error",
         description: error.message || "Failed to revoke token",
-      });
-    },
-  });
-
-  const updateDomainMutation = useMutation({
-    mutationFn: async (domain: string) => {
-      const res = await apiRequest("POST", "/api/api-settings/update-domain", { domain });
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/api-settings"] });
-      toast({
-        title: "Domain Updated",
-        description: "API domain updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to update domain",
       });
     },
   });
@@ -256,33 +228,6 @@ export default function ApiSettings() {
                     </Button>
                   )}
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  Custom Domain
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    value={customDomain}
-                    onChange={(e) => setCustomDomain(e.target.value)}
-                    placeholder="https://your-domain.com"
-                    data-testid="input-domain"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => updateDomainMutation.mutate(customDomain)}
-                    disabled={updateDomainMutation.isPending}
-                    data-testid="button-update-domain"
-                  >
-                    Update
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Configure the domain for your API endpoint
-                </p>
               </div>
             </div>
           </CardContent>

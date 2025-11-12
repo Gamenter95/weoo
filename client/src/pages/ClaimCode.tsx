@@ -189,17 +189,18 @@ export default function ClaimCode() {
                     <Label htmlFor="claim-code">Gift Code</Label>
                     <Input
                       id="claim-code"
-                      placeholder="Enter 7-character code"
+                      placeholder="Enter gift code"
                       value={claimCode}
                       onChange={(e) => setClaimCode(e.target.value.toUpperCase())}
-                      maxLength={7}
                       className="uppercase font-mono text-lg"
+                      data-testid="input-claim-code"
                     />
                   </div>
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={claimMutation.isPending || claimCode.length !== 7}
+                    disabled={claimMutation.isPending || !claimCode.trim()}
+                    data-testid="button-claim"
                   >
                     Claim Gift
                   </Button>
@@ -271,11 +272,11 @@ export default function ClaimCode() {
                       placeholder="Leave empty for random code"
                       value={createForm.code}
                       onChange={(e) => setCreateForm({ ...createForm, code: e.target.value.toUpperCase() })}
-                      maxLength={7}
                       className="uppercase font-mono"
+                      data-testid="input-custom-code"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Random 7-character code will be generated if not specified
+                      A random 7-character code will be generated if not specified
                     </p>
                   </div>
 
