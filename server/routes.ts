@@ -43,6 +43,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password: hashedPassword,
       };
 
+      // Ensure session is saved before responding
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
       res.json({ success: true, message: "Registration data saved" });
     } catch (error: any) {
       res.status(400).json({ error: error.message || "Invalid input" });
@@ -53,7 +61,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/setup-wwid", async (req, res) => {
     try {
       if (!req.session.registrationData) {
-        return res.status(400).json({ error: "Registration session not found" });
+        return res.status(400).json({ 
+          error: "Registration session expired. Please start registration again.",
+          sessionExpired: true 
+        });
       }
 
       const validatedData = wwidSchema.parse(req.body) as WWIDInput;
@@ -65,8 +76,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "WWID already taken" });
       }
 
-      // Store WWID in session
+      // Store WWID in session and save
       req.session.wwid = fullWWID;
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
 
       res.json({ success: true, wwid: fullWWID });
     } catch (error: any) {
@@ -78,7 +95,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/setup-spin", async (req, res) => {
     try {
       if (!req.session.registrationData || !req.session.wwid) {
-        return res.status(400).json({ error: "Registration session incomplete" });
+        return res.status(400).json({ 
+          error: "Registration session expired. Please start registration again.",
+          sessionExpired: true 
+        });
       }
 
       const validatedData = spinSchema.parse(req.body) as SPINInput;
@@ -98,6 +118,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clear registration data from session
       delete req.session.registrationData;
       delete req.session.wwid;
+      
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
 
       res.json({
         success: true,
@@ -132,6 +159,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Store user ID in session for S-PIN verification
       req.session.userId = user.id;
+      
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
 
       res.json({
         success: true,
@@ -147,7 +181,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/verify-pin", async (req, res) => {
     try {
       if (!req.session.userId) {
-        return res.status(401).json({ error: "Login session not found" });
+        return res.status(401).json({ 
+          error: "Login session expired. Please login again.",
+          sessionExpired: true 
+        });
       }
 
       const validatedData = verifyPinSchema.parse(req.body) as VerifyPinInput;
@@ -878,4 +915,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   return httpServer;
-}
+  }
